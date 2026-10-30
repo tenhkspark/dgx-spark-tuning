@@ -44,7 +44,7 @@ spark4 (rank 3) ───────┘    同時16系列・KVプール約11.3G
 | 1M prefill時の熱 | GPU72〜77°C・システム84°C・スロットル0ms |
 | ファン アイドル／1M prefill | state 2〜4・3,600〜4,500rpm／state 12 |
 
-1025との比較やeffort別の数字は[docs/results-1030.md](docs/results-1030.md)にまとめています。
+1025との比較やeffort別の数字は[docs/results-1030.md](docs/results-1030.md)、測り方と最初に踏んだ4つの罠は[docs/benchmarks.md](docs/benchmarks.md)、effortの効き方は[docs/effort.md](docs/effort.md)にまとめています。
 以前載せていた165（構造化）・65（prose）・6,256（prefill）は、自前のrequests計測の値で、TTFT込みのためprefillを約15%低く見ていました。以後はベンチの値だけを載せます。
 
 作者の公表値（157／75〜87／5,953）と同水準です。特別な個体ではなく、設定の問題です。

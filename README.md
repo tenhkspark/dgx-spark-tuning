@@ -46,8 +46,9 @@ Measured with the recipe's own `bin/spark bench` on spark-ds41f-1030, 2026-10-30
 | GPU temperature, 1M prefill | 72–77 °C, system 84 °C, 0 ms throttling |
 | Fan, idle / 1M prefill | state 2–4, 3,600–4,500 rpm / state 12 |
 
-The full set, including the 1025 comparison and the effort runs, is in
-[docs/results-1030.md](docs/results-1030.md).
+The full set, the 1025 comparison and the effort runs are in
+[docs/results-1030.md](docs/results-1030.md); how the numbers are taken, and the four
+ways we got them wrong first, is in [docs/benchmarks.md](docs/benchmarks.md).
 
 Idle figures were taken with no request in flight; the 2,500 MHz floor raises the resting temperature a few degrees.
 
