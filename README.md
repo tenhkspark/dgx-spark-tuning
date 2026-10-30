@@ -31,7 +31,7 @@ spark4 (rank 3) ───────┘    16 concurrent sequences, ~11.3 GB KV
 | Context | 1,048,576 tokens, `max_num_seqs` 16, DSpark speculative 5 drafts |
 | API | `http://<head>:8000/v1`, model name `deepseek-v4.1-flash` |
 
-Measured, 2026-10-28:
+Measured on spark-ds41f-1025, 2026-10-28 (1030 is installed since 2026-10-30; its published prefill gain is 8.4–12.2 %):
 
 | Metric | Result |
 | --- | --- |
