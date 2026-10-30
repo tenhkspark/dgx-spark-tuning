@@ -23,8 +23,9 @@ maximum, and lists no supported-clock table. The floor sits just above the clock
 units settle at under load anyway, so it does not overclock anything — it stops the clock
 from *dropping* when the machine thinks it is idle.
 
-Effective floor after the driver rounds to its own steps: `clocks.sm` reads 2,496 MHz,
-which is the nearest step at or above the request.
+Effective floor after the driver rounds to its own steps: `clocks.sm` reads 2,483–2,509 MHz
+across our four units, the driver's nearest steps around the request. It is a floor on the
+request, not a guarantee of the exact number.
 
 ## Why a floor helps prefill
 
@@ -60,8 +61,8 @@ systemctl status gpu-clock-floor --no-pager
 nvidia-smi --query-gpu=clocks.sm,clocks.max.sm,power.draw,temperature.gpu --format=csv
 ```
 
-`clocks.sm` should sit at or just above 2,500 MHz at idle and climb toward 3,003 under
-load. If it reads below 2,450 with the unit active, the driver rejected the request — check
+`clocks.sm` should sit at 2,480–2,510 MHz at idle and climb toward 3,003 under load. If it
+reads below 2,450 with the unit active, the driver rejected the request — check
 `journalctl -u gpu-clock-floor`.
 
 ## What it costs
