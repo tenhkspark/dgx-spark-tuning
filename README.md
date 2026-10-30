@@ -1,4 +1,4 @@
-[English](README.md) | [日本語](README-ja.md)
+[English](README.md) | [日本語](README-ja.md) | [简体中文](README-zh.md) | [한국어](README-ko.md)
 
 # DGX Spark cluster tuning: 4 nodes, one 1M-token model, no clock ceiling
 
@@ -55,7 +55,7 @@ Our earlier request-loop numbers (165 structured / 65 prose / 6,256 prefill) wer
 with a hand-rolled client and read low: a request loop includes time to first token, which
 understates prefill by about 15 %. The recipe's benchmark is the only number we quote now.
 
-## The six settings, in brief
+## The seven settings, in brief
 
 1. **Clock: no ceiling, a 2,500 MHz floor.** We do not cap the GPU clock. A cap trades
    prefill speed for a few degrees; a floor stops light load from dropping the clock and
