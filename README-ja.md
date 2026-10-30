@@ -59,12 +59,13 @@ spark4 (rank 3) ───────┘    同時16系列・KVプール約11.3G
    変わりません。→ [docs/thermal.md](docs/thermal.md)
 3. **推論: 4台で1M文脈の1モデル。** 64KiBページ・KVプール11.3GB・prefill予算16,384・
    ホスト予約3GiB/台。→ [docs/serving.md](docs/serving.md)
-4. **ディスク: `rm`しない。** 古いモデル・ログ・コンテナは戻せる場所へ移すだけ。
+4. **ネットワーク: コントロールプレーンはWi-Fiに置かない。** 毎ステップ数パケットの無線が単流decodeの16.8%を食います。リングの経路と永続化は[docs/network.md](docs/network.md)。
+5. **ディスク: `rm`しない。** 古いモデル・ログ・コンテナは戻せる場所へ移すだけ。
    コンテナのログは再起動の前に外へコピー。→ [docs/disk.md](docs/disk.md)
-5. **更新: セキュリティのみ、カーネルとファームは凍結。** ユーザー空間のセキュリティ修正は
+6. **更新: セキュリティのみ、カーネルとファームは凍結。** ユーザー空間のセキュリティ修正は
    毎日自動。カーネル・NVIDIA・CUDA・Docker・ファーム系はブラックリストで止めます。
    → [docs/security.md](docs/security.md)
-6. **見張り: 熱とAPIの2つ。** 熱はACPI・GPU温度とファン停止、APIは別ノードに確認してから
+7. **見張り: 熱とAPIの2つ。** 熱はACPI・GPU温度とファン停止、APIは別ノードに確認してから
    再起動。→ [docs/watchdogs.md](docs/watchdogs.md)
 
 ## 使い方

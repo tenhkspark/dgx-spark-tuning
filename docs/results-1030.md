@@ -25,7 +25,8 @@ This is the mechanism described in
 [spark-ds41f#712](https://github.com/christopherowen/spark-ds41f/issues/712). On our
 nodes the ring had no host routes between neighbours, so we added static routes
 (each node forwards, `ip_forward=1`) and pointed the control plane at each node's
-`enp1s0f0np0` address.
+`enp1s0f0np0` address. The routes, their systemd unit and the verification are in
+[network.md](network.md).
 
 ## Decode, thinking off
 

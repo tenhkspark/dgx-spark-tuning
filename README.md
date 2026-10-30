@@ -67,12 +67,15 @@ understates prefill by about 15 %. The recipe's benchmark is the only number we 
 3. **Serving: one 1M-context model over four nodes.** 64 KiB pages, 11.3 GB KV pool, a
    16,384-token prefill budget, and a 3 GiB per-node host reservation so the pool fits.
    → [docs/serving.md](docs/serving.md) · [measured results](docs/results-1030.md)
-4. **Disk: move, never `rm`.** Old models, logs and containers go to the trash directory
+4. **Network: keep the control plane off Wi-Fi.** A few packets per engine step over
+   wireless cost 16.8% of single-stream decode. Ring routes and their persistence are in
+   [docs/network.md](docs/network.md).
+5. **Disk: move, never `rm`.** Old models, logs and containers go to the trash directory
    with a restore path; container logs are copied out *before* any restart. → [docs/disk.md](docs/disk.md)
-5. **Patching: security only, kernel and firmware frozen.** Daily unattended upgrades for
+6. **Patching: security only, kernel and firmware frozen.** Daily unattended upgrades for
    user-space security fixes, with a blacklist that keeps out kernels, NVIDIA, CUDA,
    Docker and every firmware path. → [docs/security.md](docs/security.md)
-6. **Watchdogs: one for heat, one for the API.** The thermal watchdog alarms on ACPI or GPU
+7. **Watchdogs: one for heat, one for the API.** The thermal watchdog alarms on ACPI or GPU
    temperature and on a fan that stopped; the API watchdog asks a second node before it
    restarts anything. → [docs/watchdogs.md](docs/watchdogs.md)
 
