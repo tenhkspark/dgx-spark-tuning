@@ -30,18 +30,18 @@ spark4 (rank 3) ───────┘    同時16系列・KVプール約11.3G
 | 文脈 | 1,048,576トークン・`max_num_seqs` 16・DSpark投機5段 |
 | API | `http://<head>:8000/v1`・モデル名`deepseek-v4.1-flash` |
 
-実測（2026-10-30・レシピ付属の`bin/spark bench`・4台TP4・1M文脈・effort=max）:
+実測（2026-10-31・レシピ付属の`bin/spark bench`・4台TP4・1M文脈・thinking off・コントロールプレーンはリングの有線）:
 
 | 指標 | 結果 |
 | --- | --- |
-| Prefill（32K） | 7,508 tok/s |
-| Prefill（128K） | 7,458 tok/s |
-| Prefill（1M） | 5,675 tok/s |
-| デコード（prose・単流） | 70.9 tok/s（デコード窓76.1） |
-| デコード（code・単流） | 86.8 tok/s（デコード窓93.2） |
-| 投機のトークン/ステップ | 2.297 |
+| Prefill（32K） | 7,990 tok/s |
+| Prefill（128K） | 7,854 tok/s |
+| Prefill（1M） | 5,828 tok/s |
+| デコード（prose・単流） | 83.4 tok/s（デコード窓87.3） |
+| デコード（code・単流） | 122.1 tok/s（デコード窓130.9） |
+| 投機のトークン/ステップ | prose 2.500／code 4.339 |
 | 品質ゲート | 5/5 |
-| 1M prefill時の熱 | GPU77〜79°C・SOC92.4°C・スロットル0ms |
+| 1M prefill時の熱 | GPU72〜77°C・システム84°C・スロットル0ms |
 | ファン アイドル／1M prefill | state 2〜4・3,600〜4,500rpm／state 12 |
 
 1025との比較やeffort別の数字は[docs/results-1030.md](docs/results-1030.md)にまとめています。

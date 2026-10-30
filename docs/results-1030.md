@@ -1,86 +1,106 @@
-# spark-ds41f-1030 実測まとめ
+# spark-ds41f-1030 measured on four DGX Sparks
 
-4台DGX Spark（GB10）でDeepSeek-V4.1-Flash-1017を1M文脈・TP4リングで配信したときの実測。
-1025との比較は、同じ日に同じ`bin/spark bench`で取った値どうし。2026-10-30。
+Four nodes, GB10, TP4 ring, DeepSeek-V4.1-Flash-1017, 1M context.
+All numbers from the recipe's own `bin/spark bench`, thinking off, single client,
+seed 0, temperature 0. 2026-10-30/31.
 
-## 結論
+## The control plane decides the tail
 
-- **prefillは全サイズで改善、1Mで+10.0%**（5,160 → 5,675 tok/s）
-- **decodeは-4〜-6%**。1030がprefillと短リクエスト優先を買った代償で、作者の公表値とも一致
-- **KVプールは1M文脈6.2本 → 11.0本（+77%）**。メモリは増やさずに本数が増えた
-- 品質ゲート5/5、サーマルスロットル0ms
+Our first runs used the Wi-Fi management interface (`wlP9s9`) for `master_addr`,
+`VLLM_HOST_IP` and `GLOO/TP/NCCL_SOCKET_IFNAME`. Moving those onto the ring's
+`enp1s0f0np0` changed single-stream decode by 16.8% on the same build:
 
-## 1. スループット（`bin/spark bench`・effort=max）
+| 1030, prose, single stream | Wi-Fi control plane | ring control plane |
+| --- | --- | --- |
+| output tok/s | 71.4 ±6.4% | **83.4 ±1.0%** |
+| decode window | 75.3 | **87.3** |
+| engine step | 33.26 ms | **28.64 ms** |
+| tokens/step | 2.500 | 2.500 |
 
-| 指標 | レシピ基準 | 1025 | 1030 | 1025→1030 |
-|---|---|---|---|---|
-| Prefill 32K | 6,744 | 7,239 | **7,508** | +3.7% |
-| Prefill 64K | — | 7,227 | **7,601** | +5.2% |
-| Prefill 128K | 6,824 | 7,115 | **7,458** | +4.8% |
-| Prefill 262K | 6,503 | 6,774 | **7,216** | +6.5% |
-| Prefill 524K | 5,870 | 6,126 | **6,664** | +8.8% |
-| Prefill 1M | 4,951 | 5,160 | **5,675 ±0.9%** | +10.0% |
-| 単発decode prose-c1 | 74.1〜75 | 76.0（窓81.0） | **70.9**（窓76.1） | -6.4% |
-| 単発decode code-c1 | — | 89.2（窓96.8） | **86.8**（窓93.2） | -3.7% |
-| tokens/step | 2.266 | 2.297 | 2.297 | 同じ |
-| 品質ゲート | — | 5/5 | 5/5 | 同じ |
+Tokens per step are identical, so this is not speculation: the step itself was
+shorter. Head-to-worker RTT on the ring is 0.2 ms to a neighbour and 1.2 ms to the
+opposite node; the Wi-Fi was 3.8–4.4 ms with spikes.
 
-単位はtok/s。prefillは3本の平均、1Mは±0.9%。decodeは95%信頼区間付きの複数サンプル。
+This is the mechanism described in
+[spark-ds41f#712](https://github.com/christopherowen/spark-ds41f/issues/712). On our
+nodes the ring had no host routes between neighbours, so we added static routes
+(each node forwards, `ip_forward=1`) and pointed the control plane at each node's
+`enp1s0f0np0` address.
 
-## 2. メモリと同時に抱えられる本数
+## Decode, thinking off
 
-| 指標 | 1025 | 1030 | 差 |
-|---|---|---|---|
-| KVプール（トークン） | 6,512,700 | **11,554,122** | +77% |
-| 1M文書の同時保持 | 6.2本 | **11.0本** | +4.8本 |
-| 128K文書の同時保持 | 49本 | 88本 | 並列枠16で頭打ち |
-| 同時リクエスト枠（`max_num_seqs`） | 16 | 16 | 同じ |
-| KV予約量 | 10.5GiB | 10.5GiB | 同じ |
-| ベンチ中の空きメモリ | — | 21.3〜23.1GiB/台 | — |
+| | 1025 | 1030 |
+| --- | --- | --- |
+| prose, single stream | 80.5 ±0.5% | **83.4 ±1.0%** |
+| prose, decode window | 84.2 | **87.3** |
+| prose, engine step | 29.71 ms | **28.64 ms** |
+| code, single stream | 118.5 ±2.0% | **122.1 ±1.8%** |
+| tokens/step (prose / code) | 2.500 / 4.339 | 2.500 / 4.339 |
 
-KVの予約量は同じで保持できるトークンが77%増えたので、**1トークンあたりのKV消費は約44%減った**計算。
-並列枠は16のまま変わらないので、11本という数字は「1M級の長文を同時に抱えられる数」。1M×16本はKVが足りない。
+Both arms use the ring control plane. 1030 is 3.6% faster here and the step is
+shorter; the earlier "decode got slower" reading came from thinking-on text over
+Wi-Fi.
 
-## 3. effortの効き（同一プロトコル・単流・60秒ウォームアップ＋300秒）
+## Prefill (1030, ring control plane)
 
-| effort | tok/s | tokens/step | step時間 | TTFT p50 |
-|---|---|---|---|---|
-| high | **70.48 ±3.3%** | 2.236 | 31.71ms | 0.175s |
-| max | **68.45 ±4.6%** | 2.247 | 31.27ms | 0.171s |
+| prompt | tok/s |
+| --- | --- |
+| 32K | 7,990 |
+| 64K | 7,980 |
+| 128K | 7,854 |
+| 262K | 7,519 |
+| 524K | 6,861 |
+| 1M | 5,828 |
 
-**差は信頼区間の中**。highが速いとは言えません（+3.0%だがCIは±3〜4.6%）。
-単発の短いリクエストで85 tok/sのような数字が出ることがあるが、これはウォーム直後の上振れで、300秒の定常窓では70前後に収束する。
+The same sizes over the Wi-Fi control plane read 7,508 / 7,601 / 7,458 / 7,216 /
+6,664 / 5,675, i.e. 2.7–6.4% lower.
 
-## 4. 熱
+## Memory
 
-| 条件 | GPU最大 | SOC最大 | スロットル |
-|---|---|---|---|
-| 混在ベンチ（decode中心） | 63°C | — | 0ms |
-| 1M prefill×3本 | 77〜79°C | 92.4°C | 0ms |
+| | 1025 | 1030 |
+| --- | --- | --- |
+| KV pool | 6,512,700 tokens | **11,554,122 tokens** |
+| full 1M contexts resident | 6.2 | **11.0** |
+| KV reserved | 10.5 GiB | 10.5 GiB |
+| concurrent request slots | 16 | 16 |
 
-1M prefillではGPU 75°C・SOC 90°Cの監視しきい値に触れる。ファンはstate 12/12で追従し、異常ではない。
+The reserved bytes did not change; the pool holds 77% more tokens, so the KV cost
+per token fell by about 44%. The 16 request slots are unchanged — 11 is how many
+1M-token documents can be resident at once.
 
-## 5. 方法（再現する人向け）
+## Thermal (1M prefill, ring control plane)
+
+| | |
+| --- | --- |
+| GPU max | 72–77 °C |
+| system max | 82.7–84.3 °C |
+| power max | 78–80 W |
+| thermal slowdown | 0 ms |
+| fan | state 12 during the run, back to 2–4 after |
+
+## Method
 
 ```sh
-# スループット
-./bin/spark --cluster-config <your-config>.json bench
-./bin/spark --cluster-config <your-config>.json bench --suites prefill \
-  --prefill-sizes 32768,65536,131072,262144,524288,1000000
+# decode, thinking off
+./bin/spark --cluster-config <config> bench \
+  --decode-cases prose-nothink,code-nothink --compare none
 
-# effort別（suite JSONに extra_body で reasoning_effort を渡す）
-./bin/spark --cluster-config <your-config>.json bench \
-  --suite /path/to/suite-high.json --compare none
+# prefill, all sizes
+./bin/spark --cluster-config <config> bench --suites prefill \
+  --prefill-sizes 32768,65536,131072,262144,524288,1000000 --compare none
 ```
 
-- **自前のrequests計測は使わない。**TTFT込みで過小評価する（実測でprefillが15%低く出た）
-- **prefillは毎回ユニークなsaltを付ける。**付けないとprefix cacheに当たり、162,995 tok/sのような嘘が出る
-- **1Mは単独で回す。**会話トラフィックが重なると再試行が終わらない
-- ベンチはeffortを指定できないので、effort比較は`extra_body`入りのsuiteで行う
+- Never measure with a hand-rolled request loop: time to first token in the prefill
+  figure reads about 15% low.
+- Salt the prefill prompt so the prefix cache cannot answer it.
+- Stop other clients (including monitoring probes) for the run; the bench flags
+  foreign requests, and a busy run adds several percent of noise.
+- Pin the effort: `reasoning_effort` changes the generated text, which changes
+  speculative acceptance, which changes tok/s.
 
-## 6. この表で言えないこと
+## What this does not say
 
-- 品質の差。1030は1025と重みが同一（greedy256/256一致、KL 4.2e-8）なので、品質比較はしていない
-- 1M文脈でのdecode速度。prefillのみ測定
-- 他サイト・他台数への一般化。4台リング・この構成の値
-- 走行中に監視用の疎通確認が数回混ざった（`foreign_requests: 2〜3`）。±の範囲内だが、厳密には再走行が望ましい
+- Quality. 1030 has the same weights as 1025 (greedy 256/256, KL 4.2e-8), so no
+  quality comparison was run.
+- Decode beside a 1M prompt. Only prefill was measured at that length.
+- Other sites. Four nodes, this cabling, this kernel.
