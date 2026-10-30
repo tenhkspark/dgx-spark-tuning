@@ -1,0 +1,120 @@
+[English](README.md) | [日本語](README-ja.md)
+
+# DGX Spark cluster tuning: 4 nodes, one 1M-token model, no clock ceiling
+
+What a four-node DGX Spark (GB10) cluster actually runs, in one place: the GPU clock
+policy, the fan curve, the serving recipe, how we clean up disks without deleting
+anything, how security patches get applied while the kernel and driver stay frozen, and
+the two watchdogs that keep it alive. Every number below was measured on the four units,
+not copied from a datasheet.
+
+If you only want the fan curve, the deep dive lives in the companion repository
+[`dgx-spark-fan-tuning`](https://github.com/tenhkspark/dgx-spark-fan-tuning) (GPL-2.0,
+because it patches a GPL controller). This repository is the whole operating picture.
+
+## The setup
+
+```
+spark1 (head, rank 0) ─┐
+spark2 (rank 1)        ├── ConnectX-7 ring: 1-2-3-4-1, two paths per neighbour
+spark3 (rank 2)        │    one model, tensor parallel 4, 1,048,576 tokens of context
+spark4 (rank 3) ───────┘    16 concurrent sequences, ~11.3 GB KV pool
+```
+
+| Item | Value |
+| --- | --- |
+| Nodes | 4 × DGX Spark, GB10, 128 GB unified memory each |
+| Kernel | `7.0.0-1019-nvidia-64k` (64 KiB pages, required for the 1M context) |
+| Driver | `580.178.04` (frozen; see [security](docs/security.md)) |
+| Engine | [`christopherowen/spark-ds41f`](https://github.com/christopherowen/spark-ds41f) (Apache-2.0), TileLang backend |
+| Model | DeepSeek-V4.1-Flash-1017, native weights, TP4 ring |
+| Context | 1,048,576 tokens, `max_num_seqs` 16, DSpark speculative 5 drafts |
+| API | `http://<head>:8000/v1`, model name `deepseek-v4.1-flash` |
+
+Measured, 2026-10-28:
+
+| Metric | Result |
+| --- | --- |
+| Prefill, 32K prompt | 6,256 tok/s |
+| Decode, structured output | 165 tok/s |
+| Decode, prose | 65 tok/s |
+| 4 parallel requests, total | 149–154 tok/s |
+| 16 parallel requests | 16/16 completed |
+| GPU temperature, idle / load | 50–56 °C / 60–64 °C |
+| ACPI zone, idle / load | 49–51 °C / 69–75 °C |
+| Fan, idle / load | state 2, 3,600–4,200 rpm / state 5–7, 5,400–7,200 rpm |
+
+Idle figures were taken with no request in flight; the 2,500 MHz floor raises the resting temperature a few degrees.
+
+The author's published numbers for the same recipe (157 / 75–87 / 5,953) are in the same
+range; this cluster is not special, the settings are.
+
+## The six settings, in brief
+
+1. **Clock: no ceiling, a 2,500 MHz floor.** We do not cap the GPU clock. A cap trades
+   prefill speed for a few degrees; a floor stops light load from dropping the clock and
+   dragging prefill with it. Heat is managed by the fans and by watching power and
+   temperature, not by starving the chip. → [docs/clock.md](docs/clock.md)
+2. **Fans: shift the curve toward heat, never reach state 0.** The stock curve spins at
+   10,000+ rpm at idle. Ours holds state 1 as the floor and shifts every threshold +7 °C.
+   Idle drops to 3,600–4,200 rpm with no loss in tokens per second. → [docs/thermal.md](docs/thermal.md)
+3. **Serving: one 1M-context model over four nodes.** 64 KiB pages, 11.3 GB KV pool, a
+   16,384-token prefill budget, and a 3 GiB per-node host reservation so the pool fits.
+   → [docs/serving.md](docs/serving.md)
+4. **Disk: move, never `rm`.** Old models, logs and containers go to the trash directory
+   with a restore path; container logs are copied out *before* any restart. → [docs/disk.md](docs/disk.md)
+5. **Patching: security only, kernel and firmware frozen.** Daily unattended upgrades for
+   user-space security fixes, with a blacklist that keeps out kernels, NVIDIA, CUDA,
+   Docker and every firmware path. → [docs/security.md](docs/security.md)
+6. **Watchdogs: one for heat, one for the API.** The thermal watchdog alarms on ACPI or GPU
+   temperature and on a fan that stopped; the API watchdog asks a second node before it
+   restarts anything. → [docs/watchdogs.md](docs/watchdogs.md)
+
+## Quick start
+
+```sh
+git clone https://github.com/tenhkspark/dgx-spark-tuning
+cd dgx-spark-tuning
+
+# 1. clock floor (per node, dry-run first)
+sudo ./scripts/clock-floor.sh --apply
+
+# 2. fan curve (per node; needs the upstream controller installed first)
+sudo ./scripts/fan-curve.sh --apply
+
+# 3. watchdogs (from the machine that can reach every node)
+cp configs/nodes.example.txt configs/nodes.txt   # edit hosts
+./scripts/thermal-watch.sh --check
+./scripts/api-watchdog.sh --check
+```
+
+Each script prints what it will change and changes nothing without `--apply`.
+
+## Read this before you touch anything
+
+- **Firmware:** do not update it. The October 2026 bundle (EC 3.13.7 / SoC 2.158.15 / PD
+  5.25) breaks fan control: the fan ceiling collapses to about 4,350 rpm and the boxes
+  cook. We froze all three update paths. See [docs/security.md](docs/security.md).
+- **The 0-RPM trap:** loading the fan module without running the daemon can leave both fans
+  at 0 rpm. The SoC then reaches ~96 °C and the GPU clamps to 611 MHz while `nvidia-smi`
+  still reports ~96 % utilisation. Recovery needs the power cable out for 30 seconds, not
+  a reboot. Details and the measured incident are in the fan repository.
+- **No benchmark harness in this repository.** Numbers come from real work plus a small
+  closed-loop load generator; we do not keep a benchmarking rig running on production.
+
+## Compatibility
+
+Tested only on four DGX Spark units running DGX OS with the kernel and driver above. The
+fan curve needs the `dgx_ec_fan_control` module and the daemon from the companion
+repository; the clock floor needs nothing but `nvidia-smi`. Single-node clusters can use
+the clock, disk, security and watchdog parts unchanged and skip the TP4 serving section.
+
+## Credits and licence
+
+- Fan controller: [`christopherowen/dgx-spark-fan-control`](https://github.com/christopherowen/dgx-spark-fan-control) (GPL-2.0). We ship numbers and a patch script, not their code.
+- Serving engine: [`christopherowen/spark-ds41f`](https://github.com/christopherowen/spark-ds41f) (Apache-2.0). We ship our configuration, not their code.
+- Model: DeepSeek-V4.1-Flash-1017, used under its own licence.
+
+Everything in this repository is MIT (see [LICENSE](LICENSE)). The fan curve is applied
+to a GPL-2.0 file on your machine, which is why the patch itself is not redistributed
+here.

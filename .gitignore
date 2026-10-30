@@ -1,0 +1,6 @@
+*.log
+*.state
+configs/nodes.txt
+.DS_Store
+
+state/

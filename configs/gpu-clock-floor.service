@@ -1,0 +1,13 @@
+[Unit]
+Description=DGX Spark GPU clock floor (2500 MHz, no ceiling)
+After=nvidia-persistenced.service
+Wants=nvidia-persistenced.service
+ConditionPathExists=/usr/bin/nvidia-smi
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'M=$(/usr/bin/nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits | head -1 | tr -d " "); [ -n "$M" ] || M=3003; for i in $(seq 1 30); do /usr/bin/nvidia-smi -lgc 2500,$M && exit 0; sleep 2; done; exit 1'
+
+[Install]
+WantedBy=multi-user.target

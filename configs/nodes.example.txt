@@ -1,0 +1,6 @@
+# Example node list for the watchdogs. Copy to configs/nodes.txt (git-ignored).
+#   name   ssh target        (first line must be the head node)
+head    spark1.local
+node2   spark2.local
+node3   spark3.local
+node4   spark4.local
