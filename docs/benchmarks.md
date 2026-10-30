@@ -50,9 +50,9 @@ one arm to the other is meaningless; the tokens/step are not even close (2.297 a
 | Prefill 32K | — | 7,990 tok/s |
 | Prefill 128K | — | 7,854 tok/s |
 | Prefill 1M | — | 5,828 tok/s |
-| Decode, prose, thinking off | 80.5 ±0.5% | 83.4 ±1.0% |
-| Decode, code, thinking off | 118.5 ±2.0% | 122.1 ±1.8% |
-| Engine step, prose | 29.71 ms | 28.64 ms |
+| Decode, prose, thinking off | 80.5 ±0.5% | 83.1 (83.0–83.4, n=3) |
+| Decode, code, thinking off | 118.5 ±2.0% | 122.3 (122.1–122.6, n=3) |
+| Engine step, prose | 29.71 ms | 28.7 ms |
 | Tokens/step, prose / code | 2.500 / 4.339 | 2.500 / 4.339 |
 | Quality gate | 5/5 | 5/5 |
 | KV pool | 6,512,700 tokens | 11,554,122 tokens |

@@ -12,9 +12,9 @@ Our first runs used the Wi-Fi management interface (`wlP9s9`) for `master_addr`,
 
 | 1030, prose, single stream | Wi-Fi control plane | ring control plane |
 | --- | --- | --- |
-| output tok/s | 71.4 ±6.4% | **83.4 ±1.0%** |
-| decode window | 75.3 | **87.3** |
-| engine step | 33.26 ms | **28.64 ms** |
+| output tok/s | 71.4 ±6.4% | **83.1** (83.0–83.4 over three runs) |
+| decode window | 75.3 | **87.0** |
+| engine step | 33.26 ms | **28.7 ms** |
 | tokens/step | 2.500 | 2.500 |
 
 Tokens per step are identical, so this is not speculation: the step itself was
@@ -32,15 +32,29 @@ nodes the ring had no host routes between neighbours, so we added static routes
 
 | | 1025 | 1030 |
 | --- | --- | --- |
-| prose, single stream | 80.5 ±0.5% | **83.4 ±1.0%** |
-| prose, decode window | 84.2 | **87.3** |
-| prose, engine step | 29.71 ms | **28.64 ms** |
-| code, single stream | 118.5 ±2.0% | **122.1 ±1.8%** |
+| prose, single stream | 80.5 ±0.5% | **83.1** (83.0–83.4, n=3) |
+| prose, decode window | 84.2 | **87.0** |
+| prose, engine step | 29.71 ms | **28.7 ms** |
+| code, single stream | 118.5 ±2.0% | **122.3** (122.1–122.6, n=3) |
 | tokens/step (prose / code) | 2.500 / 4.339 | 2.500 / 4.339 |
 
-Both arms use the ring control plane. 1030 is 3.6% faster here and the step is
+Both arms use the ring control plane. 1030 is 3.2% faster here and the step is
 shorter; the earlier "decode got slower" reading came from thinking-on text over
 Wi-Fi.
+
+### Repeatability
+
+Three independent runs of the decode pair, minutes apart, on the same boot:
+
+| run | prose tok/s | code tok/s | prose step | window |
+| --- | --- | --- | --- | --- |
+| 00:06 | 83.4 ±1.0% | 122.1 ±1.8% | 28.64 ms | 87.3 |
+| 01:00 | 83.0 ±1.6% | 122.1 ±1.5% | 28.72 ms | 86.9 |
+| 01:04 | 83.1 ±0.7% | 122.6 ±0.1% | 28.75 ms | 87.0 |
+
+Tokens per step were identical in all three (2.500 prose, 4.339 code). A 0.5% spread
+across runs is the noise floor for this measurement, so anything smaller than that is
+not a result.
 
 ## Prefill (1030, ring control plane)
 

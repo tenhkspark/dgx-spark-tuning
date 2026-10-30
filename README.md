@@ -39,12 +39,15 @@ Measured with the recipe's own `bin/spark bench` on spark-ds41f-1030, 2026-10-30
 | Prefill, 32K prompt | 7,990 tok/s |
 | Prefill, 128K prompt | 7,854 tok/s |
 | Prefill, 1M prompt | 5,828 tok/s |
-| Decode, prose, single stream | 83.4 tok/s (87.3 across the decode window) |
-| Decode, code, single stream | 122.1 tok/s (130.9 across the decode window) |
+| Decode, prose, single stream | 83.1 tok/s (mean of three runs, 83.0–83.4; 87.0 across the decode window) |
+| Decode, code, single stream | 122.3 tok/s (mean of three runs, 122.1–122.6; 131.6 across the decode window) |
 | Tokens per speculative step | 2.500 prose / 4.339 code |
 | Quality gate | 5/5 |
 | GPU temperature, 1M prefill | 72–77 °C, system 84 °C, 0 ms throttling |
 | Fan, idle / 1M prefill | state 2–4, 3,600–4,500 rpm / state 12 |
+
+Three independent runs of the decode pair agree to within 0.5%, with identical
+tokens/step; the spread is in [results-1030.md](docs/results-1030.md).
 
 The full set, the 1025 comparison and the effort runs are in
 [docs/results-1030.md](docs/results-1030.md); how the numbers are taken, and the four
