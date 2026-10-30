@@ -10,6 +10,9 @@ reach, and routes that exist after a reboot. This page is the second part.
 
 ## The cabling we assume
 
+The addresses below are the scheme we run; substitute your own. They are private
+RFC1918 addresses on an isolated link, not reachable from the LAN or the internet.
+
 Neighbours only — no switch. Each node has two ring ports, one to each neighbour, and the
 ring closes 1-2-3-4-1:
 

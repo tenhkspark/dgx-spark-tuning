@@ -1,6 +1,6 @@
 # Fans: shift the curve toward heat, never reach state 0
 
-The full story — the 0-RPM incident, the firmware that breaks fan control, the measured
+The full story — the 0-RPM incident, the firmware that broke fan control on our units, the measured
 RPM at every state — is in the companion repository
 [`dgx-spark-fan-tuning`](https://github.com/tenhkspark/dgx-spark-fan-tuning). This page is
 the operating summary and the numbers we run.

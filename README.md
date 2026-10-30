@@ -102,8 +102,8 @@ Each script prints what it will change and changes nothing without `--apply`.
 ## Read this before you touch anything
 
 - **Firmware:** do not update it. The October 2026 bundle (EC 3.13.7 / SoC 2.158.15 / PD
-  5.25) breaks fan control: the fan ceiling collapses to about 4,350 rpm and the boxes
-  cook. We froze all three update paths. See [docs/security.md](docs/security.md).
+  5.25) breaks fan control: the fan ceiling collapses to about 4,350 rpm on our units and
+  they run hot. We froze all three update paths. See [docs/security.md](docs/security.md).
 - **The 0-RPM trap:** loading the fan module without running the daemon can leave both fans
   at 0 rpm. The SoC then reaches ~96 °C and the GPU clamps to 611 MHz while `nvidia-smi`
   still reports ~96 % utilisation. Recovery needs the power cable out for 30 seconds, not
