@@ -60,7 +60,7 @@ range; this cluster is not special, the settings are.
    Idle drops to 3,600–4,200 rpm with no loss in tokens per second. → [docs/thermal.md](docs/thermal.md)
 3. **Serving: one 1M-context model over four nodes.** 64 KiB pages, 11.3 GB KV pool, a
    16,384-token prefill budget, and a 3 GiB per-node host reservation so the pool fits.
-   → [docs/serving.md](docs/serving.md)
+   → [docs/serving.md](docs/serving.md) · [measured results](docs/results-1030.md)
 4. **Disk: move, never `rm`.** Old models, logs and containers go to the trash directory
    with a restore path; container logs are copied out *before* any restart. → [docs/disk.md](docs/disk.md)
 5. **Patching: security only, kernel and firmware frozen.** Daily unattended upgrades for
