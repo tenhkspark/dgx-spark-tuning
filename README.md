@@ -31,23 +31,29 @@ spark4 (rank 3) ───────┘    16 concurrent sequences, ~11.3 GB KV
 | Context | 1,048,576 tokens, `max_num_seqs` 16, DSpark speculative 5 drafts |
 | API | `http://<head>:8000/v1`, model name `deepseek-v4.1-flash` |
 
-Measured on spark-ds41f-1025, 2026-10-28 (1030 is installed since 2026-10-30; its published prefill gain is 8.4–12.2 %):
+Measured with the recipe's own `bin/spark bench` on spark-ds41f-1030, 2026-10-30
+(four nodes, TP4 ring, 1M context, effort `max`):
 
 | Metric | Result |
 | --- | --- |
-| Prefill, 32K prompt | 6,256 tok/s |
-| Decode, structured output | 165 tok/s |
-| Decode, prose | 65 tok/s |
-| 4 parallel requests, total | 149–154 tok/s |
-| 16 parallel requests | 16/16 completed |
-| GPU temperature, idle / load | 50–56 °C / 60–64 °C |
-| ACPI zone, idle / load | 49–51 °C / 69–75 °C |
-| Fan, idle / load | state 2, 3,600–4,200 rpm / state 5–7, 5,400–7,200 rpm |
+| Prefill, 32K prompt | 7,508 tok/s |
+| Prefill, 128K prompt | 7,458 tok/s |
+| Prefill, 1M prompt | 5,675 tok/s |
+| Decode, prose, single stream | 70.9 tok/s (76.1 across the decode window) |
+| Decode, code, single stream | 86.8 tok/s (93.2 across the decode window) |
+| Tokens per speculative step | 2.297 |
+| Quality gate | 5/5 |
+| GPU temperature, 1M prefill | 77–79 °C, SoC 92.4 °C, 0 ms throttling |
+| Fan, idle / 1M prefill | state 2–4, 3,600–4,500 rpm / state 12 |
+
+The full set, including the 1025 comparison and the effort runs, is in
+[docs/results-1030.md](docs/results-1030.md).
 
 Idle figures were taken with no request in flight; the 2,500 MHz floor raises the resting temperature a few degrees.
 
-The author's published numbers for the same recipe (157 / 75–87 / 5,953) are in the same
-range; this cluster is not special, the settings are.
+Our earlier request-loop numbers (165 structured / 65 prose / 6,256 prefill) were measured
+with a hand-rolled client and read low: a request loop includes time to first token, which
+understates prefill by about 15 %. The recipe's benchmark is the only number we quote now.
 
 ## The six settings, in brief
 
