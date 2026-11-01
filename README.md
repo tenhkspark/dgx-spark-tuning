@@ -8,6 +8,11 @@ anything, how security patches get applied while the kernel and driver stay froz
 the two watchdogs that keep it alive. Every number below was measured on the four units,
 not copied from a datasheet.
 
+If you run an agent on top of this stack and want controls rather than trust, the companion
+repository [`agent-blast-radius`](https://github.com/tenhkspark/agent-blast-radius) covers the
+egress allow-list, the tool-call audit, the ingest quarantine and the weights ledger — with what
+each one does *not* cover stated up front.
+
 If you only want the fan curve, the deep dive lives in the companion repository
 [`dgx-spark-fan-tuning`](https://github.com/tenhkspark/dgx-spark-fan-tuning) (GPL-2.0,
 because it patches a GPL controller). This repository is the whole operating picture.
